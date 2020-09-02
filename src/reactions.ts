@@ -1,7 +1,5 @@
-import { toggleReaction, ReactionID, reactionTypes } from './github';
+import { toggleReaction, ReactionID, reactionTypes } from './services/github';
 import { getLoginUrl } from './oauth';
-import { pageAttributes } from './page-attributes';
-import { scheduleMeasure } from './measure';
 
 export const reactionNames: Record<ReactionID, string> = {
   '+1': 'Thumbs Up',
@@ -71,7 +69,6 @@ export function enableReactions(authenticated: boolean) {
         (parseInt(element.getAttribute('reaction-count')!, 10) + delta).toString());
     }
     button.disabled = false;
-    scheduleMeasure();
   };
   addEventListener('click', submitReaction, true);
 }
@@ -98,7 +95,7 @@ export function getReactionsMenuHtml(url: string, align: 'center' | 'right') {
   </details>`;
 }
 
-export function getSignInToReactMenuHtml(align: 'center' | 'right') {
+export function getSignInToReactMenuHtml(align: 'center' | 'right', currentUrl: string) {
   const position = align === 'center' ? 'left: 50%;transform: translateX(-50%)' : 'right:6px';
   const alignmentClass = align === 'center' ? '' : 'Popover-message--top-right';
   return `
@@ -106,7 +103,7 @@ export function getSignInToReactMenuHtml(align: 'center' | 'right') {
     <summary aria-label="Reactions Menu">${addReactionSvgs}</summary>
     <div class="Popover" style="${position}">
       <div class="Popover-message ${alignmentClass} box-shadow-large" style="padding: 16px">
-        <span><a href="${getLoginUrl(pageAttributes.url)}" target="_top">Sign in</a> to add your reaction.</span>
+        <span><a href="${getLoginUrl(currentUrl)}" target="_top">Sign in</a> to add your reaction.</span>
       </div>
     </div>
   </details>`;

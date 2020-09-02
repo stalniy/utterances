@@ -1,13 +1,10 @@
-import { token } from './oauth';
-import { decodeBase64UTF8 } from './encoding';
-import { UTTERANCES_API } from './utterances-api';
+import { token } from '../oauth';
+import { decodeBase64UTF8 } from '../encoding';
+import { UTTERANCES_API, PAGE_SIZE, GITHUB_API } from '../config';
 
-const GITHUB_API = 'https://api.github.com/';
 const GITHUB_ENCODING__HTML_JSON = 'application/vnd.github.VERSION.html+json';
 const GITHUB_ENCODING__HTML = 'application/vnd.github.VERSION.html';
 const GITHUB_ENCODING__REACTIONS_PREVIEW = 'application/vnd.github.squirrel-girl-preview';
-
-export const PAGE_SIZE = 25;
 
 export type ReactionID = '+1' | '-1' | 'laugh' | 'hooray' | 'confused' | 'heart' | 'rocket' | 'eyes';
 
@@ -28,7 +25,7 @@ function githubRequest(relativeUrl: string, init?: RequestInit) {
   init.cache = 'no-cache'; // force conditional request
   const request = new Request(GITHUB_API + relativeUrl, init);
   request.headers.set('Accept', GITHUB_ENCODING__REACTIONS_PREVIEW);
-  if (!/^search\//.test(relativeUrl) && token.value !== null) {
+  if (relativeUrl.indexOf('search/') === -1 && token.value !== null) {
     request.headers.set('Authorization', `token ${token.value}`);
   }
   return request;
@@ -48,16 +45,12 @@ const rateLimit = {
 };
 
 function processRateLimit(response: Response) {
-  const limit = response.headers.get('X-RateLimit-Limit')!;
-  const remaining = response.headers.get('X-RateLimit-Remaining')!;
-  const reset = response.headers.get('X-RateLimit-Reset')!;
-
-  const isSearch = /\/search\//.test(response.url);
+  const isSearch = response.url.indexOf('/search/') !== -1;
   const rate = isSearch ? rateLimit.search : rateLimit.standard;
 
-  rate.limit = +limit;
-  rate.remaining = +remaining;
-  rate.reset = +reset;
+  rate.limit = Number(response.headers.get('X-RateLimit-Limit')!);
+  rate.remaining = Number(response.headers.get('X-RateLimit-Remaining')!);
+  rate.reset = Number(response.headers.get('X-RateLimit-Reset')!);
 
   if (response.status === 403 && rate.remaining === 0) {
     const resetDate = new Date(0);

@@ -1,42 +1,38 @@
-import { User, Issue, IssueComment } from './github';
+import { User, Issue, IssueComment } from '../services/github';
 import { CommentComponent } from './comment-component';
-import { scheduleMeasure } from './measure';
 
 export class TimelineComponent {
-  public readonly element: HTMLElement;
-  private readonly timeline: CommentComponent[] = [];
+  public readonly el: HTMLElement;
+  private readonly _timeline: CommentComponent[] = [];
   private readonly countAnchor: HTMLAnchorElement;
   private readonly marker: Node;
   private count: number = 0;
 
   constructor(
     private user: User | null,
-    private issue: Issue | null
+    private issue: Issue | null,
+    private _currentUrl: string
   ) {
-    this.element = document.createElement('main');
-    this.element.classList.add('timeline');
-    this.element.innerHTML = `
+    this.el = document.createElement('main');
+    this.el.classList.add('timeline');
+    this.el.innerHTML = `
       <h1 class="timeline-header">
         <a class="text-link" target="_blank"></a>
-        <em>
-          - powered by
-          <a class="text-link" href="https://utteranc.es" target="_blank">utteranc.es</a>
-        </em>
-      </h1>`;
-    this.countAnchor = this.element.firstElementChild!.firstElementChild as HTMLAnchorElement;
+      </h1>
+    `.trim();
+    this.countAnchor = this.el.firstElementChild!.firstElementChild as HTMLAnchorElement;
     this.marker = document.createComment('marker');
-    this.element.appendChild(this.marker);
+    this.el.appendChild(this.marker);
     this.setIssue(this.issue);
-    this.renderCount();
+    this._renderCount();
   }
 
   public setUser(user: User | null) {
     this.user = user;
     const login = user ? user.login : null;
-    for (let i = 0; i < this.timeline.length; i++) {
-      this.timeline[i].setCurrentUser(login);
+    for (let i = 0; i < this._timeline.length; i++) {
+      this._timeline[i].setCurrentUser(login);
     }
-    scheduleMeasure();
   }
 
   public setIssue(issue: Issue | null) {
@@ -44,7 +40,7 @@ export class TimelineComponent {
     if (issue) {
       this.count = issue.comments;
       this.countAnchor.href = issue.html_url;
-      this.renderCount();
+      this._renderCount();
     } else {
       this.countAnchor.removeAttribute('href');
     }
@@ -54,33 +50,33 @@ export class TimelineComponent {
     const component = new CommentComponent(
       comment,
       this.user ? this.user.login : null,
-      this.issue!.locked);
+      this.issue!.locked,
+      this._currentUrl
+    );
 
-    const index = this.timeline.findIndex(x => x.comment.id >= comment.id);
+    const index = this._timeline.findIndex(x => x.comment.id >= comment.id);
     if (index === -1) {
-      this.timeline.push(component);
-      this.element.insertBefore(component.element, this.marker);
+      this._timeline.push(component);
+      this.el.insertBefore(component.el, this.marker);
     } else {
-      const next = this.timeline[index];
+      const next = this._timeline[index];
       const remove = next.comment.id === comment.id;
-      this.element.insertBefore(component.element, next.element);
-      this.timeline.splice(index, remove ? 1 : 0, component);
+      this.el.insertBefore(component.el, next.el);
+      this._timeline.splice(index, remove ? 1 : 0, component);
       if (remove) {
-        next.element.remove();
+        next.el.remove();
       }
     }
 
     if (incrementCount) {
       this.count++;
-      this.renderCount();
+      this._renderCount();
     }
-
-    scheduleMeasure();
   }
 
   public insertPageLoader(insertAfter: IssueComment, count: number, callback: () => void) {
-    const { element: insertAfterElement } = this.timeline.find(x => x.comment.id >= insertAfter.id)!;
-    insertAfterElement.insertAdjacentHTML('afterend', `
+    const comment = this._timeline.find(x => x.comment.id >= insertAfter.id)!;
+    comment.el.insertAdjacentHTML('afterend', `
       <div class="page-loader">
         <div class="zigzag"></div>
         <button type="button" class="btn btn-outline btn-large">
@@ -89,7 +85,7 @@ export class TimelineComponent {
         </button>
       </div>
     `);
-    const element = insertAfterElement.nextElementSibling!;
+    const element = comment.el.nextElementSibling!;
     const button = element.lastElementChild! as HTMLButtonElement;
     const statusSpan = button.lastElementChild!;
     button.onclick = callback;
@@ -106,7 +102,7 @@ export class TimelineComponent {
     };
   }
 
-  private renderCount() {
+  private _renderCount() {
     this.countAnchor.textContent = `${this.count} Comment${this.count === 1 ? '' : 's'}`;
   }
 }
