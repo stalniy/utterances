@@ -135,20 +135,24 @@ export class NewCommentComponent {
     this._submitComment();
   }
 
-  private async _submitComment() {
+  private _submitComment() {
     if (this._submitting) {
-      return;
+      return Promise.resolve();
     }
     this._submitting = true;
     this._textarea.disabled = true;
     this._submitButton.disabled = true;
-    await this._createComment(this._textarea.value).catch(() => 0);
-    this._submitting = false;
-    this._textarea.disabled = !this._user;
-    this._textarea.value = '';
-    this._submitButton.disabled = false;
-    this._selectTab(this._form.querySelector('.tabnav-tab.tab-write')!);
-    this._preview.textContent = nothingToPreview;
+
+    return this._createComment(this._textarea.value)
+      .catch(() => 0)
+      .then(() => {
+        this._submitting = false;
+        this._textarea.disabled = !this._user;
+        this._textarea.value = '';
+        this._submitButton.disabled = false;
+        this._selectTab(this._form.querySelector('.tabnav-tab.tab-write')!);
+        this._preview.textContent = nothingToPreview;
+      });
   }
 
   private _selectTab(target: Element) {

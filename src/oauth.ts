@@ -7,16 +7,22 @@ export function getLoginUrl(url: string) {
   return `${UTTERANCES_API}/authorize?redirect_uri=${encodeURIComponent(url)}`;
 }
 
-export async function loadToken(): Promise<string | null> {
+export function loadToken(): Promise<string | null> {
   if (token.value) {
-    return token.value;
+    return Promise.resolve(token.value);
   }
+
   const url = `${UTTERANCES_API}/token`;
-  const response = await fetch(url, { method: 'POST', mode: 'cors', credentials: 'include' });
-  if (response.ok) {
-    const t = await response.json();
-    token.value = t;
-    return t;
-  }
-  return null;
+  return fetch(url, { method: 'POST', mode: 'cors', credentials: 'include' })
+    .then((response) => {
+      if (!response.ok) {
+        return null;
+      }
+
+      return response.json();
+    })
+    .then((value) => {
+      token.value = value;
+      return value;
+    })
 }
